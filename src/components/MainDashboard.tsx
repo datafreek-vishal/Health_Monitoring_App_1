@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Sparkles,
+  Bluetooth,
 } from 'lucide-react';
 import { HealthStatusBadge } from './HealthStatusBadge';
 import { EmergencySOSButton } from './EmergencySOSButton';
@@ -33,6 +34,7 @@ interface MainDashboardProps {
   onOpenAddReadingModal: () => void;
   onOpenSimulator: () => void;
   onViewFamilyPortal: () => void;
+  onOpenWatchModal?: () => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({
@@ -45,6 +47,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   onOpenAddReadingModal,
   onOpenSimulator,
   onViewFamilyPortal,
+  onOpenWatchModal,
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('HEART_RATE');
 
@@ -84,6 +87,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
           {/* Quick Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {onOpenWatchModal && (
+              <button
+                id="btn-quick-connect-watch"
+                onClick={onOpenWatchModal}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl flex items-center gap-1.5 transition-colors shadow-sm"
+              >
+                <Bluetooth className="w-4 h-4" />
+                Connect Watch
+              </button>
+            )}
+
             <button
               id="btn-quick-add-reading"
               onClick={onOpenAddReadingModal}

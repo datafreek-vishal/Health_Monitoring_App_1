@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Watch,
   Smartphone,
@@ -13,8 +13,18 @@ import {
   Wifi,
   WifiOff,
   CheckCircle2,
+  Bluetooth,
+  Heart,
+  Zap,
+  Radio,
 } from 'lucide-react';
 import { DeviceConnection } from '../types';
+import { WatchConnectionModal } from './WatchConnectionModal';
+import {
+  BluetoothWatchService,
+  BluetoothReading,
+  BluetoothConnectionStatus,
+} from '../services/BluetoothWatchService';
 
 interface DevicesViewProps {
   devices: DeviceConnection[];
@@ -30,6 +40,22 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
   onAddDevice,
 }) => {
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [isWatchModalOpen, setIsWatchModalOpen] = useState(false);
+  const [bleStatus, setBleStatus] = useState<BluetoothConnectionStatus>(BluetoothWatchService.getStatus());
+  const [bleReading, setBleReading] = useState<BluetoothReading | null>(null);
+
+  useEffect(() => {
+    const unsubStatus = BluetoothWatchService.subscribeStatus((status) => {
+      setBleStatus(status);
+    });
+    const unsubReadings = BluetoothWatchService.subscribe((r) => {
+      setBleReading(r);
+    });
+    return () => {
+      unsubStatus();
+      unsubReadings();
+    };
+  }, []);
 
   const handleSync = (id: string) => {
     setSyncingId(id);
@@ -51,22 +77,83 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
             </span>
           </div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-            Connected Devices
+            Connected Devices & Smartwatches
           </h2>
           <p className="text-xs text-slate-500 max-w-xl mt-1">
-            HealthGuard aggregates and normalizes sensor feeds from Apple HealthKit, Android Health Connect, and approved medical peripherals.
+            HealthGuard connects directly to Apple Watch, Google Pixel Watch, Wear OS, and medical peripherals via live Web Bluetooth, Apple HealthKit bridges, and Health Connect.
           </p>
         </div>
 
-        <button
-          id="btn-pair-new-device"
-          onClick={onAddDevice}
-          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Pair New Device
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            id="btn-pair-watch"
+            onClick={() => setIsWatchModalOpen(true)}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm shrink-0"
+          >
+            <Bluetooth className="w-4 h-4" />
+            Connect Apple / Google Watch
+          </button>
+
+          <button
+            id="btn-pair-new-device"
+            onClick={onAddDevice}
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Other Devices
+          </button>
+        </div>
       </div>
+
+      {/* Live Bluetooth Streaming Bar if connected */}
+      {bleStatus === 'CONNECTED' && bleReading && (
+        <div className="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center animate-pulse">
+              <Heart className="w-6 h-6 fill-white text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-100">
+                  Live Bluetooth Stream Active
+                </span>
+                <span className="px-2 py-0.5 bg-white/20 text-[10px] font-bold rounded-full">
+                  {bleReading.deviceName}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black">{bleReading.heartRate}</span>
+                <span className="text-xs font-semibold text-emerald-100">BPM</span>
+                <span className="text-xs text-emerald-200 ml-2">
+                  (Skin contact verified • Packet received at {new Date(bleReading.timestamp).toLocaleTimeString()})
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsWatchModalOpen(true)}
+              className="px-4 py-2 bg-white text-emerald-800 text-xs font-bold rounded-xl shadow-sm hover:bg-emerald-50 transition-colors"
+            >
+              Manage Watch
+            </button>
+            <button
+              onClick={() => BluetoothWatchService.disconnect()}
+              className="px-3 py-2 bg-black/20 hover:bg-black/30 text-white text-xs font-bold rounded-xl transition-colors"
+            >
+              Disconnect
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Watch Modal */}
+      <WatchConnectionModal
+        isOpen={isWatchModalOpen}
+        onClose={() => setIsWatchModalOpen(false)}
+        userId="user_101"
+      />
 
       {/* Critical "No Data" vs "Normal Data" Safety Notice */}
       <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-3xl text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3">

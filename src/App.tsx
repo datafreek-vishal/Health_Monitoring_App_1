@@ -36,6 +36,7 @@ import { LandingPageView } from './components/LandingPageView';
 import { HealthRulesView } from './components/HealthRulesView';
 import { MainDashboard } from './components/MainDashboard';
 import { AddReadingModal } from './components/AddReadingModal';
+import { WatchConnectionModal } from './components/WatchConnectionModal';
 
 import { MockDataStore, HealthGuardState } from './services/MockDataStore';
 import { AlertStateMachine } from './services/AlertStateMachine';
@@ -65,6 +66,7 @@ export default function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isAddReadingOpen, setIsAddReadingOpen] = useState(false);
   const [isHealthcareModalOpen, setIsHealthcareModalOpen] = useState(false);
+  const [isWatchModalOpen, setIsWatchModalOpen] = useState(false);
   const [isElderlyMode, setIsElderlyMode] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
 
@@ -423,6 +425,7 @@ export default function App() {
             onOpenAddReadingModal={() => setIsAddReadingOpen(true)}
             onOpenSimulator={() => setIsSimulatorOpen(true)}
             onViewFamilyPortal={() => setActiveView('FAMILY_PORTAL')}
+            onOpenWatchModal={() => setIsWatchModalOpen(true)}
           />
         )}
 
@@ -612,6 +615,13 @@ export default function App() {
       <EventSimulatorDrawer
         isOpen={isSimulatorOpen}
         onClose={() => setIsSimulatorOpen(false)}
+      />
+
+      {/* SMARTWATCH & WEARABLE PAIRING MODAL */}
+      <WatchConnectionModal
+        isOpen={isWatchModalOpen}
+        onClose={() => setIsWatchModalOpen(false)}
+        userId={state.user.userId}
       />
     </div>
   );

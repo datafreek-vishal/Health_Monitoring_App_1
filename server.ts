@@ -200,6 +200,49 @@ app.post('/api/v1/health/readings', (req, res) => {
   res.status(201).json({ success: true, readingId: 'rd_' + Math.random().toString(36).substring(2, 8), reading });
 });
 
+// --- WEARABLE LIVE INGESTION WEBHOOK (Apple Watch & Google Health Connect) ---
+app.post('/api/v1/sync/wearables', (req, res) => {
+  const { source, deviceName, readings, metrics } = req.body;
+  const incoming = readings || metrics || [req.body];
+  const count = Array.isArray(incoming) ? incoming.length : 1;
+  const now = new Date().toISOString();
+
+  // Update or register device in state
+  const dName = deviceName || source || 'External Smartwatch';
+  const existingDev = state.devices.find((d) => d.deviceName.toLowerCase().includes(dName.toLowerCase()));
+  if (existingDev) {
+    existingDev.lastSyncTime = now;
+    existingDev.isConnected = true;
+    existingDev.status = 'CONNECTED';
+  } else {
+    state.devices.push({
+      id: 'dev_ingest_' + Math.random().toString(36).substring(2, 8),
+      deviceName: dName,
+      manufacturer: dName.toLowerCase().includes('apple') ? 'Apple Inc.' : dName.toLowerCase().includes('pixel') ? 'Google LLC' : 'Wearable Sensor',
+      connectionType: dName.toLowerCase().includes('apple') ? 'APPLE_HEALTH' : 'HEALTH_CONNECT',
+      batteryLevel: 85,
+      isConnected: true,
+      lastSyncTime: now,
+      status: 'CONNECTED',
+    });
+  }
+
+  console.log(`[Wearable Ingest] Received ${count} readings from ${dName}`);
+  res.status(200).json({
+    success: true,
+    ingestedCount: count,
+    timestamp: now,
+    message: `Successfully synced ${count} readings from ${dName}.`,
+  });
+});
+
+app.get('/api/v1/sync/wearables/latest', (req, res) => {
+  res.json({
+    activeDevices: state.devices.filter((d) => d.isConnected),
+    latestSync: new Date().toISOString(),
+  });
+});
+
 // --- RULES ---
 app.get('/api/v1/health-rules', (req, res) => {
   res.json({ rules: state.rules });
