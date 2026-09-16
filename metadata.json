@@ -1,0 +1,6 @@
+{
+  "name": "HealthGuard",
+  "description": "Cross-platform health monitoring and family emergency-response platform. Your Health. Your People. Help When It Matters.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
