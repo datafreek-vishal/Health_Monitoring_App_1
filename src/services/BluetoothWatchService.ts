@@ -10,6 +10,8 @@
  * - Characteristic: 0x2A19 (Battery Level)
  */
 
+import { MockDataStore } from './MockDataStore';
+
 export interface BluetoothReading {
   heartRate: number;
   contactDetected?: boolean;
@@ -95,13 +97,18 @@ export class BluetoothWatchService {
     try {
       this.setStatus('SCANNING');
 
-      // Request device with standard Bluetooth SIG Heart Rate Service and optional battery & device info
+      // Request device with standard Bluetooth SIG Heart Rate Service, Noise fitness band filters, and battery/device info
       const bluetooth = (navigator as any).bluetooth;
       const device = await bluetooth.requestDevice({
         filters: [
           { services: ['heart_rate'] },
+          { services: [0x180D] },
+          { namePrefix: 'Noise' },
+          { namePrefix: 'ColorFit' },
+          { namePrefix: 'Pulse' },
+          { namePrefix: 'Band' },
         ],
-        optionalServices: ['battery_service', 'device_information', 0x180D, 0x180F],
+        optionalServices: ['heart_rate', 'battery_service', 'device_information', 0x180D, 0x180F, 0x180A],
       });
 
       if (!device) {
@@ -155,6 +162,24 @@ export class BluetoothWatchService {
       }
 
       this.setStatus('CONNECTED');
+
+      // Sync device entry in MockDataStore
+      const devName = device.name || 'Bluetooth Smartwatch';
+      MockDataStore.addDevice({
+        id: 'dev_ble_' + (device.id || 'current'),
+        userId: MockDataStore.getState().user.userId,
+        deviceName: devName,
+        manufacturer: 'Bluetooth SIG (GATT)',
+        model: 'BLE Standard HR Profile (0x180D)',
+        connectionType: 'BLUETOOTH_LE',
+        batteryLevel: this.lastKnownBattery ?? 90,
+        isConnected: true,
+        lastSyncTime: new Date().toISOString(),
+        supportedMetrics: ['HEART_RATE', 'BATTERY', 'HRV'],
+        status: 'CONNECTED',
+        icon: 'watch',
+      });
+
       return true;
     } catch (err: any) {
       console.error('[BLE] Watch connection error:', err);

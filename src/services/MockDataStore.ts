@@ -367,8 +367,32 @@ const INITIAL_STATE: HealthGuardState = {
   auditLogs: AuditLogger.getLogs(),
 };
 
+const STORAGE_KEY = 'healthguard_state_v1';
+
+function loadPersistedState(): HealthGuardState {
+  if (typeof window === 'undefined') return INITIAL_STATE;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        ...INITIAL_STATE,
+        ...parsed,
+        rules: parsed.rules || INITIAL_STATE.rules,
+        devices: parsed.devices || INITIAL_STATE.devices,
+        trustedContacts: parsed.trustedContacts || INITIAL_STATE.trustedContacts,
+        user: parsed.user || INITIAL_STATE.user,
+        readings: parsed.readings || INITIAL_STATE.readings,
+      };
+    }
+  } catch (e) {
+    console.warn('[Store] Failed to load local state:', e);
+  }
+  return INITIAL_STATE;
+}
+
 export class MockDataStore {
-  private static state: HealthGuardState = INITIAL_STATE;
+  private static state: HealthGuardState = loadPersistedState();
   private static listeners: Array<(state: HealthGuardState) => void> = [];
 
   public static getState(): HealthGuardState {
@@ -377,6 +401,13 @@ export class MockDataStore {
 
   public static updateState(updater: (prev: HealthGuardState) => HealthGuardState) {
     this.state = updater(this.state);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      }
+    } catch (e) {
+      console.warn('[Store] Failed to save state to localStorage:', e);
+    }
     this.notify();
   }
 
@@ -396,15 +427,71 @@ export class MockDataStore {
   public static addReading(reading: HealthReading) {
     this.updateState((prev) => ({
       ...prev,
-      readings: [reading, ...prev.readings.filter((r) => r.metricType !== reading.metricType || r.id !== reading.id)],
+      readings: [reading, ...prev.readings.filter((r) => r.id !== reading.id)],
+    }));
+  }
+
+  public static updateUserProfile(profile: Partial<UserProfile>) {
+    this.updateState((prev) => ({
+      ...prev,
+      user: {
+        ...prev.user,
+        ...profile,
+        updatedAt: new Date().toISOString(),
+      },
+    }));
+  }
+
+  public static addDevice(device: DeviceConnection) {
+    this.updateState((prev) => ({
+      ...prev,
+      devices: [device, ...prev.devices.filter((d) => d.id !== device.id)],
+    }));
+  }
+
+  public static updateDevice(deviceId: string, updates: Partial<DeviceConnection>) {
+    this.updateState((prev) => ({
+      ...prev,
+      devices: prev.devices.map((d) => (d.id === deviceId ? { ...d, ...updates } : d)),
+    }));
+  }
+
+  public static removeDevice(deviceId: string) {
+    this.updateState((prev) => ({
+      ...prev,
+      devices: prev.devices.filter((d) => d.id !== deviceId),
+    }));
+  }
+
+  public static addTrustedContact(contact: TrustedContact) {
+    this.updateState((prev) => ({
+      ...prev,
+      trustedContacts: [...prev.trustedContacts, contact],
+    }));
+  }
+
+  public static updateTrustedContact(contactId: string, updates: Partial<TrustedContact>) {
+    this.updateState((prev) => ({
+      ...prev,
+      trustedContacts: prev.trustedContacts.map((c) =>
+        c.id === contactId ? { ...c, ...updates } : c
+      ),
+    }));
+  }
+
+  public static removeTrustedContact(contactId: string) {
+    this.updateState((prev) => ({
+      ...prev,
+      trustedContacts: prev.trustedContacts.filter((c) => c.id !== contactId),
     }));
   }
 
   public static setActiveAlert(alert: EmergencyEvent | null) {
     this.updateState((prev) => {
-      const history = alert && alert.status === 'RESOLVED'
-        ? [alert, ...prev.alertHistory.filter((a) => a.id !== alert.id)]
-        : prev.alertHistory;
+      const history =
+        alert && alert.status === 'RESOLVED'
+          ? [alert, ...prev.alertHistory.filter((a) => a.id !== alert.id)]
+          : prev.alertHistory;
       return {
         ...prev,
         activeAlert: alert && alert.status !== 'RESOLVED' ? alert : null,

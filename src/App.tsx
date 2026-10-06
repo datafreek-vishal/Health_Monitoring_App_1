@@ -37,6 +37,8 @@ import { HealthRulesView } from './components/HealthRulesView';
 import { MainDashboard } from './components/MainDashboard';
 import { AddReadingModal } from './components/AddReadingModal';
 import { WatchConnectionModal } from './components/WatchConnectionModal';
+import { ProfileEditModal } from './components/ProfileEditModal';
+import { AddDeviceModal } from './components/AddDeviceModal';
 
 import { MockDataStore, HealthGuardState } from './services/MockDataStore';
 import { AlertStateMachine } from './services/AlertStateMachine';
@@ -67,6 +69,8 @@ export default function App() {
   const [isAddReadingOpen, setIsAddReadingOpen] = useState(false);
   const [isHealthcareModalOpen, setIsHealthcareModalOpen] = useState(false);
   const [isWatchModalOpen, setIsWatchModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isAddDeviceModalOpen, setIsAddDeviceModalOpen] = useState(false);
   const [isElderlyMode, setIsElderlyMode] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
 
@@ -426,6 +430,7 @@ export default function App() {
             onOpenSimulator={() => setIsSimulatorOpen(true)}
             onViewFamilyPortal={() => setActiveView('FAMILY_PORTAL')}
             onOpenWatchModal={() => setIsWatchModalOpen(true)}
+            onOpenProfileModal={() => setIsProfileModalOpen(true)}
           />
         )}
 
@@ -500,16 +505,13 @@ export default function App() {
                 userId: state.user.userId,
                 ...newC,
               } as any;
-              MockDataStore.updateState((prev) => ({
-                ...prev,
-                trustedContacts: [...prev.trustedContacts, created],
-              }));
+              MockDataStore.addTrustedContact(created);
             }}
             onUpdateContact={(id, updates) => {
-              MockDataStore.updateState((prev) => ({
-                ...prev,
-                trustedContacts: prev.trustedContacts.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-              }));
+              MockDataStore.updateTrustedContact(id, updates);
+            }}
+            onDeleteContact={(id) => {
+              MockDataStore.removeTrustedContact(id);
             }}
           />
         )}
@@ -520,7 +522,7 @@ export default function App() {
             devices={state.devices}
             onSyncDevice={handleSyncDevice}
             onDisconnectDevice={handleDisconnectDevice}
-            onAddDevice={() => setIsOnboardingOpen(true)}
+            onAddDevice={() => setIsAddDeviceModalOpen(true)}
           />
         )}
 
@@ -622,6 +624,22 @@ export default function App() {
         isOpen={isWatchModalOpen}
         onClose={() => setIsWatchModalOpen(false)}
         userId={state.user.userId}
+      />
+
+      {/* USER HEALTH PROFILE EDIT MODAL */}
+      <ProfileEditModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        profile={state.user}
+        onSave={(updated) => MockDataStore.updateUserProfile(updated)}
+      />
+
+      {/* PAIR NEW HEALTH DEVICE MODAL */}
+      <AddDeviceModal
+        isOpen={isAddDeviceModalOpen}
+        onClose={() => setIsAddDeviceModalOpen(false)}
+        onDeviceAdded={(dev) => MockDataStore.addDevice(dev)}
+        onOpenBluetoothWatch={() => setIsWatchModalOpen(true)}
       />
     </div>
   );

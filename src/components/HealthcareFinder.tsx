@@ -26,12 +26,57 @@ export const HealthcareFinder: React.FC<HealthcareFinderProps> = ({
 }) => {
   const [selectedType, setSelectedType] = useState<HealthcareFacilityType | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [locationState, setLocationState] = useState<{ status: string; coords?: { lat: number; lng: number } }>({
-    status: 'Location active: Bengaluru Central (lat 12.9716, lng 77.5946)',
-    coords: { lat: 12.9716, lng: 77.5946 },
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [locationState, setLocationState] = useState<{
+    status: string;
+    coords?: { lat: number; lng: number };
+    isLive: boolean;
+  }>({
+    status: 'Detecting your device location...',
+    coords: undefined,
+    isLive: false,
   });
 
-  const facilities = LocationService.getNearbyFacilities();
+  const requestGps = () => {
+    if (!navigator.geolocation) {
+      setLocationState({
+        status: 'Geolocation is not supported by your browser.',
+        coords: { lat: 12.9716, lng: 77.5946 },
+        isLive: false,
+      });
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsLoading(false);
+        setLocationState({
+          status: `Live GPS acquired (Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)} • ±${Math.round(pos.coords.accuracy)}m)`,
+          coords: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          isLive: true,
+        });
+      },
+      (err) => {
+        setGpsLoading(false);
+        setLocationState({
+          status: `GPS access ${err.code === 1 ? 'denied' : 'unavailable'}. Showing nearby facilities from default center.`,
+          coords: { lat: 12.9716, lng: 77.5946 },
+          isLive: false,
+        });
+      },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  };
+
+  // Automatically request on mount
+  React.useEffect(() => {
+    requestGps();
+  }, []);
+
+  const facilities = LocationService.getNearbyFacilities(
+    locationState.coords?.lat,
+    locationState.coords?.lng
+  );
 
   const filteredFacilities = facilities.filter((fac) => {
     const matchesType = selectedType === 'ALL' || fac.type === selectedType;
@@ -40,24 +85,6 @@ export const HealthcareFinder: React.FC<HealthcareFinderProps> = ({
       fac.address.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesQuery;
   });
-
-  const requestGps = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocationState({
-            status: `GPS Acquired (Accuracy: ±${Math.round(pos.coords.accuracy)}m)`,
-            coords: { lat: pos.coords.latitude, lng: pos.coords.longitude },
-          });
-        },
-        (err) => {
-          setLocationState({
-            status: 'Using default emergency coordinates (GPS permission prompt handled)',
-          });
-        }
-      );
-    }
-  };
 
   const content = (
     <div className="space-y-4">

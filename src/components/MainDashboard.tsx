@@ -18,6 +18,9 @@ import {
   ChevronRight,
   Sparkles,
   Bluetooth,
+  User,
+  Flame,
+  MapPin,
 } from 'lucide-react';
 import { HealthStatusBadge } from './HealthStatusBadge';
 import { EmergencySOSButton } from './EmergencySOSButton';
@@ -35,6 +38,7 @@ interface MainDashboardProps {
   onOpenSimulator: () => void;
   onViewFamilyPortal: () => void;
   onOpenWatchModal?: () => void;
+  onOpenProfileModal?: () => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({
@@ -48,6 +52,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   onOpenSimulator,
   onViewFamilyPortal,
   onOpenWatchModal,
+  onOpenProfileModal,
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('HEART_RATE');
 
@@ -59,7 +64,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const sleepReading = state.readings.find((r) => r.metricType === 'SLEEP');
   const stepsReading = state.readings.find((r) => r.metricType === 'STEPS');
 
-  const bpValue = bpReading ? (bpReading.value as BloodPressureValue) : { systolic: 124, diastolic: 78 };
+  // Derived activity values
+  const currentSteps = stepsReading ? Number(stepsReading.value) : 6842;
+  const distanceKm = (currentSteps * 0.00078).toFixed(2);
+  const activeCalories = Math.round(currentSteps * 0.042);
+
+  const bpValue = bpReading
+    ? (bpReading.value as BloodPressureValue)
+    : { systolic: 124, diastolic: 78 };
   const primaryContact = state.trustedContacts[0];
 
   return (
@@ -77,11 +89,24 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 Continuous Monitor Active
               </span>
             </div>
-            <h1 className={`font-black tracking-tight text-slate-900 dark:text-white ${isElderlyMode ? 'text-3xl' : 'text-2xl'}`}>
-              Hello, {state.user.fullName}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className={`font-black tracking-tight text-slate-900 dark:text-white ${isElderlyMode ? 'text-3xl' : 'text-2xl'}`}>
+                Hello, {state.user.fullName}
+              </h1>
+              {onOpenProfileModal && (
+                <button
+                  id="btn-open-profile-edit"
+                  onClick={onOpenProfileModal}
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors"
+                  title="Edit profile & medical parameters"
+                >
+                  <User className="w-3.5 h-3.5 text-emerald-600" />
+                  Edit Profile
+                </button>
+              )}
+            </div>
             <p className="text-xs text-slate-500 mt-1 max-w-xl">
-              All biometric signals are within clinically validated safety envelopes. 2 wearables synchronized.
+              Biometric baselines active. {state.devices.length} verified devices synchronized with zero latency.
             </p>
           </div>
 
@@ -158,7 +183,61 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         </div>
       )}
 
-      {/* Primary Vitals Grid (6 Cards) */}
+      {/* Daily Fitness & Activity Metrics Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 dark:from-emerald-950/30 dark:via-teal-950/30 dark:to-blue-950/30 p-5 rounded-3xl border border-emerald-200/50 dark:border-emerald-800/40">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center shrink-0">
+            <Footprints className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] uppercase font-bold text-slate-400 block tracking-wider">
+              Today's Steps
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {currentSteps.toLocaleString()}
+              </span>
+              <span className="text-xs text-slate-400">/ 10,000 goal</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3.5 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 pt-3 md:pt-0 md:pl-4">
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center shrink-0">
+            <MapPin className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] uppercase font-bold text-slate-400 block tracking-wider">
+              Distance Covered
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {distanceKm}
+              </span>
+              <span className="text-xs text-slate-400">km</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3.5 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 pt-3 md:pt-0 md:pl-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center shrink-0">
+            <Flame className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] uppercase font-bold text-slate-400 block tracking-wider">
+              Active Energy Expended
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {activeCalories}
+              </span>
+              <span className="text-xs text-slate-400">kcal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Primary Vitals Grid (4 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Heart Rate Card */}
         <div

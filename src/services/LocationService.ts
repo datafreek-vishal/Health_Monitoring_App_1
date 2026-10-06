@@ -65,73 +65,129 @@ export class LocationService {
   }
 
   /**
-   * Nearby healthcare facilities directory (India-first directory with real emergency phone numbers)
+   * Calculate precise Haversine distance between two GPS coordinates in kilometers
    */
-  public static getNearbyFacilities(userLat = 12.9716, userLng = 77.5946): HealthcareFacility[] {
-    return [
+  public static calculateHaversineDistanceKm(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return parseFloat((R * c).toFixed(1));
+  }
+
+  /**
+   * Nearby healthcare facilities directory dynamically sorted by distance from user's coordinates
+   */
+  public static getNearbyFacilities(userLat?: number, userLng?: number): HealthcareFacility[] {
+    const baseFacilities: Omit<HealthcareFacility, 'distanceKm'>[] = [
       {
         id: 'fac_1',
-        name: 'Manipal Hospital – 24/7 Emergency & Trauma',
+        name: 'Apollo Hospital & Emergency Trauma Unit',
         type: 'HOSPITAL',
-        distanceKm: 1.2,
-        address: '98, HAL Old Airport Rd, Kodihalli, Bengaluru, Karnataka 560017',
-        phone: '+91 80 2502 4444',
-        emergencyDepartment: true,
-        operatingHours: 'Open 24 Hours',
-        latitude: 12.9589,
-        longitude: 77.6499,
-        directionsUrl: 'https://maps.google.com/?q=Manipal+Hospital+Bangalore',
-      },
-      {
-        id: 'fac_2',
-        name: 'Apollo Hospital Emergency Care',
-        type: 'HOSPITAL',
-        distanceKm: 2.4,
-        address: '154, IIMB Post, Bannerghatta Rd, Bengaluru, Karnataka 560076',
+        address: 'Bannerghatta Main Rd, Opposite IIM, Bilekahalli',
         phone: '+91 80 2630 4050',
         emergencyDepartment: true,
         operatingHours: 'Open 24 Hours',
         latitude: 12.8948,
         longitude: 77.5991,
-        directionsUrl: 'https://maps.google.com/?q=Apollo+Hospital+Bangalore',
+        directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=12.8948,77.5991',
+      },
+      {
+        id: 'fac_2',
+        name: 'Manipal Hospital – 24/7 Emergency & Critical Care',
+        type: 'HOSPITAL',
+        address: '98, HAL Old Airport Rd, Kodihalli',
+        phone: '+91 80 2502 4444',
+        emergencyDepartment: true,
+        operatingHours: 'Open 24 Hours',
+        latitude: 12.9589,
+        longitude: 77.6499,
+        directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=12.9589,77.6499',
       },
       {
         id: 'fac_3',
         name: 'Fortis Hospital & Cardiac Emergency Unit',
         type: 'HOSPITAL',
-        distanceKm: 3.1,
-        address: '14, Cunningham Rd, Vasanth Nagar, Bengaluru, Karnataka 560052',
+        address: '14, Cunningham Rd, Vasanth Nagar',
         phone: '+91 80 4199 4444',
         emergencyDepartment: true,
         operatingHours: 'Open 24 Hours',
         latitude: 12.9877,
         longitude: 77.5959,
-        directionsUrl: 'https://maps.google.com/?q=Fortis+Hospital+Cunningham',
+        directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=12.9877,77.5959',
       },
       {
         id: 'fac_4',
         name: 'National Emergency Ambulance Service (108 / 112)',
         type: 'AMBULANCE',
-        distanceKm: 0.5,
-        address: 'Government of Karnataka Emergency Medical Response Center',
+        address: 'State Emergency Medical Dispatch Center',
         phone: '108',
         emergencyDepartment: true,
         operatingHours: 'Continuous 24/7 Dispatch',
-        latitude: 12.9716,
-        longitude: 77.5946,
+        latitude: userLat || 12.9716,
+        longitude: userLng || 77.5946,
+        directionsUrl: 'tel:108',
       },
       {
         id: 'fac_5',
+        name: 'Narayana Institute of Cardiac Sciences',
+        type: 'HOSPITAL',
+        address: '258/A, Bommasandra Industrial Area, Anekal Taluk',
+        phone: '+91 80 7122 2222',
+        emergencyDepartment: true,
+        operatingHours: 'Open 24 Hours',
+        latitude: 12.8123,
+        longitude: 77.6891,
+        directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=12.8123,77.6891',
+      },
+      {
+        id: 'fac_6',
         name: 'MedPlus 24-Hour Pharmacy & First Aid Depot',
         type: 'PHARMACY',
-        distanceKm: 0.8,
-        address: 'Shop 4, Brigade Road, Ashok Nagar, Bengaluru 560001',
+        address: 'Brigade Road, Ashok Nagar',
         phone: '+91 80 2558 1234',
         emergencyDepartment: false,
         operatingHours: 'Open 24 Hours',
         latitude: 12.9725,
         longitude: 77.6074,
+        directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=12.9725,77.6074',
       },
     ];
+
+    const currentLat = userLat ?? 12.9716;
+    const currentLng = userLng ?? 77.5946;
+
+    return baseFacilities
+      .map((facility) => {
+        const distanceKm =
+          facility.type === 'AMBULANCE'
+            ? 0.5
+            : this.calculateHaversineDistanceKm(
+                currentLat,
+                currentLng,
+                facility.latitude,
+                facility.longitude
+              );
+        return {
+          ...facility,
+          distanceKm,
+          directionsUrl:
+            facility.type === 'AMBULANCE'
+              ? 'tel:108'
+              : `https://www.google.com/maps/dir/?api=1&destination=${facility.latitude},${facility.longitude}`,
+        };
+      })
+      .sort((a, b) => a.distanceKm - b.distanceKm);
   }
 }

@@ -378,13 +378,16 @@ export const WatchConnectionModal: React.FC<WatchConnectionModalProps> = ({
               </div>
               <ul className="list-disc pl-5 space-y-1">
                 <li>
+                  <strong>Noise Rep Fitness Band & Smartwatches</strong>: Ensure your Noise Rep Band has Bluetooth enabled and isn't locked by the NoiseFit app. Tap <strong>Pair Live Watch via Bluetooth</strong> to pair directly via GATT Heart Rate Service (0x180D).
+                </li>
+                <li>
                   <strong>Google Pixel Watch & Samsung Galaxy Watch</strong>: Enable Bluetooth Heart Rate broadcast in your watch settings or Wear OS fitness app, then click "Pair Live Watch".
                 </li>
                 <li>
                   <strong>Apple Watch</strong>: Install a free Bluetooth broadcast app (like <em>HeartCast</em> or <em>BlueHeart</em>) on your Apple Watch. Tap "Start Broadcast" on your wrist, then click "Pair Live Watch".
                 </li>
                 <li>
-                  <strong>Standard Smartwatches & Chest Straps</strong>: Any Polar, Garmin, Wahoo, or Amazfit device broadcasting the standard Bluetooth SIG Heart Rate Service (0x180D) pairs directly!
+                  <strong>Standard Smartwatches & Chest Straps</strong>: Any Polar, Garmin, Wahoo, Noise, or Amazfit device broadcasting the standard Bluetooth SIG Heart Rate Service (0x180D) pairs directly!
                 </li>
               </ul>
             </div>

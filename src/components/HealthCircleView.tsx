@@ -13,6 +13,10 @@ import {
   Heart,
   Activity,
   MapPin,
+  Trash2,
+  Edit2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { TrustedContact, FamilyRelationship } from '../types';
 
@@ -20,6 +24,7 @@ interface HealthCircleViewProps {
   contacts: TrustedContact[];
   onAddContact: (contact: Partial<TrustedContact>) => void;
   onUpdateContact: (id: string, updates: Partial<TrustedContact>) => void;
+  onDeleteContact?: (id: string) => void;
 }
 
 export const HealthCircleView: React.FC<HealthCircleViewProps> = ({
@@ -132,9 +137,24 @@ export const HealthCircleView: React.FC<HealthCircleViewProps> = ({
                 </div>
               </div>
 
-              <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900">
-                {contact.status}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900">
+                  {contact.status}
+                </span>
+                {onDeleteContact && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to remove ${contact.name} from your health circle?`)) {
+                        onDeleteContact(contact.id);
+                      }
+                    }}
+                    title="Remove from health circle"
+                    className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Direct Contact info */}
